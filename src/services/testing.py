@@ -89,7 +89,8 @@ class TestingApplicationService:
             per_page: int = 10,
             order_by: Literal["title", "created_at"] = "created_at",
             query: str = None,
-            user_id: uuid.UUID = None
+            user_id: uuid.UUID = None,
+            is_correct: bool = None
     ) -> list[schemas.AttemptTest]:
         """
         Получить общий список удачных попыток прохождения тестирования пользователей
@@ -99,11 +100,11 @@ class TestingApplicationService:
         :param order_by: поле сортировки
         :param query: строка поиска
         :param user_id: id пользователя
+        :param is_correct: результат прохождения тестирования
 
         :return:
 
         """
-
 
         if page < 1:
             raise exceptions.NotFound("Страница не найдена")
@@ -116,13 +117,16 @@ class TestingApplicationService:
         per_page = min(per_page, per_page_limit, 2147483646)
         offset = min((page - 1) * per_page, 2147483646)
 
+        # some = await self._attempt_repo.get_successful_attempts()
         # Выполнение запроса
         if query:
             attempts = await self._attempt_repo.search(
                 limit=per_page,
                 offset=offset,
                 order_by=order_by,
+                as_full=True,
                 query=query,
+                # **{"is_correct": is_correct} if is_correct is not None else {},
                 **{"user_id": user_id} if user_id else {}
             )
         else:
@@ -130,6 +134,8 @@ class TestingApplicationService:
                 limit=per_page,
                 offset=offset,
                 order_by=order_by,
+                as_full=True,
+                # **{"is_correct": is_correct} if is_correct is not None else {},
                 **{"user_id": user_id} if user_id else {}
             )
         return [schemas.AttemptTest.model_validate(attempt) for attempt in attempts]
@@ -164,8 +170,8 @@ class TestingApplicationService:
         )
 
         if first_attempt:
-            time_now = datetime.now()
-            time_deadline = first_attempt.created_at + timedelta(days=vacancy.test_time)
+            time_now = datetime.now().replace(tzinfo=None)
+            time_deadline = (first_attempt.created_at + timedelta(days=vacancy.test_time)).replace(tzinfo=None)
 
             if time_now > time_deadline:
                 raise exceptions.BadRequest(f"Время прохождения теста истекло")
@@ -204,14 +210,21 @@ class TestingApplicationService:
         )
 
         if first_attempt:
-            time_now = datetime.now()
-            time_deadline = first_attempt.created_at + timedelta(days=vacancy.test_time)
+            time_now = datetime.now().replace(tzinfo=None)
+            time_deadline = (first_attempt.created_at + timedelta(days=vacancy.test_time)).replace(tzinfo=None)
 
             if time_now > time_deadline:
                 raise exceptions.BadRequest(f"Время прохождения теста истекло")
 
         questions = await self._theoretical_question_repo.get_all(testing_id=testing_id, as_full=True)
-        return [schemas.TheoreticalQuestion.model_validate(question) for question in questions]
+        response = []
+        for question in questions:
+            model = schemas.TheoreticalQuestion.model_validate(question)
+            for option in model.answer_options:
+                option.is_correct = None
+            response.append(model)
+
+        return response
 
     @permission_filter(Permission.COMPLETE_TESTING)
     @state_filter(UserState.ACTIVE)
