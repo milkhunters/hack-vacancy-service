@@ -60,7 +60,7 @@ class PracticalQuestionUpdate(BaseModel):
 class AnswerOption(BaseModel):
     id: UUID
     content: str
-    is_correct: bool
+    is_correct: bool | None
 
     question_id: UUID
 
