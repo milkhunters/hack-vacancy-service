@@ -19,7 +19,7 @@ class Attempt(BaseModel):
 
 
 class AttemptTest(Attempt):
-    test: "Testing"
+    test: Testing
 
     class Config:
         from_attributes = True

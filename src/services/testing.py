@@ -137,10 +137,12 @@ class TestingApplicationService:
         :return:
 
         """
-        # Проверка наличия тестирования
         testing = await self._repo.get(id=testing_id)
         if not testing:
             raise exceptions.NotFound(f"Тестирование с id:{testing_id} не найдено")
+
+        if testing.type != TestType.PRACTICAL:
+            raise exceptions.BadRequest(f"Тестирование с id:{testing_id} не является практическим")
 
         vacancy = await self._vacancy_repo.get(id=testing.vacancy_id)
         if not vacancy:
@@ -179,6 +181,9 @@ class TestingApplicationService:
         if not testing:
             raise exceptions.NotFound(f"Тестирование с id:{testing_id} не найдено")
 
+        if testing.type != TestType.THEORETICAL:
+            raise exceptions.BadRequest(f"Тестирование с id:{testing_id} не является теоретическим")
+
         vacancy = await self._vacancy_repo.get(id=testing.vacancy_id)
         if not vacancy:
             raise exceptions.NotFound(f"Вакансия с id:{testing.vacancy_id} не найдена")
@@ -198,7 +203,7 @@ class TestingApplicationService:
             if time_now > time_deadline:
                 raise exceptions.BadRequest(f"Время прохождения теста истекло")
 
-        questions = await self._theoretical_question_repo.get_all(testing_id=testing_id)
+        questions = await self._theoretical_question_repo.get_all(testing_id=testing_id, as_full=True)
         return [schemas.TheoreticalQuestion.model_validate(question) for question in questions]
 
     @permission_filter(Permission.COMPLETE_TESTING)
@@ -206,13 +211,13 @@ class TestingApplicationService:
     async def complete_theoretical_testing(
             self,
             testing_id: uuid.UUID,
-            data: list[schemas.AnswerToTheoreticalQuestion]
+            answers: list[schemas.AnswerToTheoreticalQuestion]
     ) -> schemas.AttemptTest:
         """
         Завершить теоретическое тестирование
 
         :param testing_id: id тестирования
-        :param data: данные прохождения тестирования
+        :param answers: данные прохождения тестирования
         :return:
 
         """
@@ -221,6 +226,9 @@ class TestingApplicationService:
         if not testing:
             raise exceptions.NotFound(f"Тестирование с id:{testing_id} не найдено")
 
+        if testing.type != TestType.THEORETICAL:
+            raise exceptions.BadRequest(f"Тестирование с id:{testing_id} не является теоретическим")
+
         vacancy = await self._vacancy_repo.get(id=testing.vacancy_id)
         if not vacancy:
             raise exceptions.NotFound(f"Вакансия с id:{testing.vacancy_id} не найдена")
@@ -234,27 +242,50 @@ class TestingApplicationService:
         )
 
         if first_attempt:
-            time_now = datetime.now()
-            time_deadline = first_attempt.created_at + timedelta(days=vacancy.test_time)
-
+            time_now = datetime.now().replace(tzinfo=None)
+            time_deadline = (first_attempt.created_at + timedelta(days=vacancy.test_time)).replace(tzinfo=None)
             if time_now > time_deadline:
                 raise exceptions.BadRequest(f"Время прохождения теста истекло")
 
-        questions = await self._theoretical_question_repo.get_all(testing_id=testing_id)
-        correct_answers = 0
+        questions = await self._theoretical_question_repo.get_all(testing_id=testing_id, as_full=True)
 
-        # todo
+        # Hashing
+        questions_hash = {}
+        for question in questions:
+            option_hash = {}
+            for option in question.answer_options:
+                option_hash[option.id] = option
+            questions_hash[question.id] = option_hash
+
+        # Проверка ответов
+        correct_answers = 0
+        for answer in answers:
+            options = questions_hash.get(answer.question_id)
+            if options is None:
+                raise exceptions.BadRequest(f"Вопрос с id:{answer.question_id} не найден")
+
+            option = options.get(answer.answer_option_id)
+            if option is None:
+                raise exceptions.BadRequest(f"Вариант ответа с id:{answer.answer_option_id} не найден")
+
+            if option.is_correct:
+                correct_answers += 1
+
+        all_questions = len(questions)
+
+        if all_questions == 0:
+            user_percent = 0
+        else:
+            user_percent = int((correct_answers * 100) / all_questions)
 
         attempt = schemas.AttemptTest.model_validate(
             await self._attempt_repo.create(
+                percent=user_percent,
                 user_id=self._current_user.id,
-                testing_id=testing_id,
-                correct_answers=correct_answers,
-                total_answers=len(questions)
+                test_id=testing_id,
             )
         )
-
-        return schemas.AttemptTest(**attempt.model_dump(), test=schemas.Testing.model_validate(testing))
+        return schemas.AttemptTest(**attempt.model_dump(exclude={"test"}), test=schemas.Testing.model_validate(testing))
 
     @permission_filter(Permission.COMPLETE_TESTING)
     @state_filter(UserState.ACTIVE)
@@ -275,6 +306,9 @@ class TestingApplicationService:
         testing = await self._repo.get(id=testing_id)
         if not testing:
             raise exceptions.NotFound(f"Тестирование с id:{testing_id} не найдено")
+
+        if testing.type != TestType.PRACTICAL:
+            raise exceptions.BadRequest(f"Тестирование с id:{testing_id} не является практическим")
 
         vacancy = await self._vacancy_repo.get(id=testing.vacancy_id)
         if not vacancy:
