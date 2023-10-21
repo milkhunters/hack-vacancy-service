@@ -355,9 +355,16 @@ class TestingApplicationService:
                 raise exceptions.BadRequest(f"Время прохождения теста истекло")
 
         questions = await self._practical_question_repo.get_all(testing_id=testing_id)
+
+        # Hashing
+        questions_hash = {}
+        for question in questions:
+            questions_hash[question.id] = question
+
+        # Проверка ответов
         correct_answers = 0
         for answer in answers:
-            question = await self._practical_question_repo.get(id=answer.question_id)
+            question = questions_hash.get(answer.question_id)
             if not question:
                 raise exceptions.NotFound(f"Вопрос с id:{answer.question_id} не найден")
 
