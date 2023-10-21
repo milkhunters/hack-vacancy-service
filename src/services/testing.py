@@ -68,7 +68,7 @@ class TestingApplicationService:
             offset=offset,
             order_by=order_by,
             user_id=self._current_user.id,
-            **{"testing_id": testing_id}
+            **{"test_id": testing_id}
         )
         return [schemas.AttemptTest.model_validate(attempt) for attempt in attempts]
 

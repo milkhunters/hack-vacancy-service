@@ -10,6 +10,7 @@ from src.services import ServiceFactory
 from src.views.testing import TestingsResponse
 from src.views.testing import TestingResponse
 from src.views.testing import AttemptsTestResponse
+
 router = APIRouter()
 
 
@@ -41,49 +42,6 @@ async def new_testing(vacancy_id: UUID, data: schemas.TestingCreate, services: S
     Максимальный размер названия - 255 символов
     """
     return TestingResponse(content=await services.testing.create_testing(vacancy_id, data))
-
-
-@router.get("/{testing_id}", response_model=TestingResponse, status_code=http_status.HTTP_200_OK)
-async def get_testing(testing_id: UUID, services: ServiceFactory = Depends(get_services)):
-    """
-    Получить тестирование по id
-
-    Требуемое состояние: - Active
-
-    Требуемые права доступа: GET_TESTING
-    """
-    return TestingResponse(content=await services.testing.get_testing(testing_id))
-
-
-@router.put("/{testing_id}", response_model=None, status_code=http_status.HTTP_204_NO_CONTENT)
-async def update_testing(
-        testing_id: UUID,
-        data: schemas.TestingUpdate,
-        services: ServiceFactory = Depends(get_services)
-):
-    """
-    Обновить тестирование по id
-
-    Требуемое состояние: ACTIVE
-
-    Требуемые права доступа: UPDATE_TESTING
-
-    """
-    await services.testing.update_testing(testing_id, data)
-
-
-@router.delete("/{testing_id}", response_model=None, status_code=http_status.HTTP_204_NO_CONTENT)
-async def delete_testing(testing_id: UUID, services: ServiceFactory = Depends(get_services)):
-    """
-    Удалить тестирование по id
-
-    Требуемое состояние: ACTIVE
-
-    Требуемые права доступа: DELETE_TESTING
-
-    """
-    await services.testing.delete_testing(testing_id)
-
 
 @router.get("/attempts", response_model=AttemptsTestResponse, status_code=http_status.HTTP_200_OK)
 async def get_self_attempts(
@@ -165,3 +123,45 @@ async def get_user_attempts(
             user_id=user_id
         )
     )
+
+
+@router.delete("/{testing_id}", response_model=None, status_code=http_status.HTTP_204_NO_CONTENT)
+async def delete_testing(testing_id: UUID, services: ServiceFactory = Depends(get_services)):
+    """
+    Удалить тестирование по id
+
+    Требуемое состояние: ACTIVE
+
+    Требуемые права доступа: DELETE_TESTING
+
+    """
+    await services.testing.delete_testing(testing_id)
+
+
+@router.get("/{testing_id}", response_model=TestingResponse, status_code=http_status.HTTP_200_OK)
+async def get_testing(testing_id: UUID, services: ServiceFactory = Depends(get_services)):
+    """
+    Получить тестирование по id
+
+    Требуемое состояние: - Active
+
+    Требуемые права доступа: GET_TESTING
+    """
+    return TestingResponse(content=await services.testing.get_testing(testing_id))
+
+
+@router.put("/{testing_id}", response_model=None, status_code=http_status.HTTP_204_NO_CONTENT)
+async def update_testing(
+        testing_id: UUID,
+        data: schemas.TestingUpdate,
+        services: ServiceFactory = Depends(get_services)
+):
+    """
+    Обновить тестирование по id
+
+    Требуемое состояние: ACTIVE
+
+    Требуемые права доступа: UPDATE_TESTING
+
+    """
+    await services.testing.update_testing(testing_id, data)
