@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from sqlalchemy import select, text, func, or_, and_
-from sqlalchemy.orm import subqueryload
+from sqlalchemy.orm import subqueryload, joinedload
 
 from src.models import tables
 from src.services.repository.base import BaseRepository
@@ -64,3 +64,17 @@ class AttemptRepo(BaseRepository[tables.Attempt]):
             )
 
         return await self._session.execute(stmt).scalars().all()
+
+    async def get_all(
+            self, limit: int = 100,
+            offset: int = 0,
+            order_by: str = "id",
+            as_full: bool = False,
+            **kwargs
+    ) -> list[tables.Attempt]:
+        req = select(self.table).filter_by(**kwargs)
+        if as_full:
+            req = req.options(joinedload(self.table.test))
+
+        result = (await self._session.execute(req.order_by(text(order_by)).limit(limit).offset(offset))).unique()
+        return result.scalars().all()
