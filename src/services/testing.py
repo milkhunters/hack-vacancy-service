@@ -54,6 +54,11 @@ class TestingApplicationService:
 
         """
 
+        if testing_id:
+            testing = await self._repo.get(id=testing_id)
+            if not testing:
+                raise exceptions.NotFound(f"Тестирование с id:{testing_id} не найдено")
+
         if page < 1:
             raise exceptions.NotFound("Страница не найдена")
         if per_page < 1:
@@ -70,8 +75,9 @@ class TestingApplicationService:
             limit=per_page,
             offset=offset,
             order_by=order_by,
+            as_full=True,
             user_id=self._current_user.id,
-            **{"test_id": testing_id}
+            **{"test_id": testing_id} if testing_id else {}
         )
         return [schemas.AttemptTest.model_validate(attempt) for attempt in attempts]
 
@@ -98,6 +104,7 @@ class TestingApplicationService:
 
         """
 
+
         if page < 1:
             raise exceptions.NotFound("Страница не найдена")
         if per_page < 1:
@@ -116,14 +123,14 @@ class TestingApplicationService:
                 offset=offset,
                 order_by=order_by,
                 query=query,
-                **{"user_id": user_id}
+                **{"user_id": user_id} if user_id else {}
             )
         else:
             attempts = await self._attempt_repo.get_all(
                 limit=per_page,
                 offset=offset,
                 order_by=order_by,
-                **{"user_id": user_id}
+                **{"user_id": user_id} if user_id else {}
             )
         return [schemas.AttemptTest.model_validate(attempt) for attempt in attempts]
 
