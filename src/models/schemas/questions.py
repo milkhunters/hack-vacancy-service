@@ -130,10 +130,8 @@ class AnswerOptionUpdate(BaseModel):
 class AnswerToTheoreticalQuestion(BaseModel):
     answer_option_id: UUID
     question_id: UUID
-    attempt_id: UUID
 
 
 class AnswerToPracticalQuestion(BaseModel):
     answer: str
     question_id: UUID
-    attempt_id: UUID
