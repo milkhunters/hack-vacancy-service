@@ -48,7 +48,7 @@ async def new_vacancy(vacancy: schemas.VacancyCreate, services: ServiceFactory =
 
     Требуемое состояние: ACTIVE
 
-    Требуемые права доступа: CREATE_SELF_ARTICLES
+    Требуемые права доступа: CREATE_VACANCY
 
     Максимальный размер статьи - 32000 символов
     """
@@ -62,7 +62,7 @@ async def get_vacancy(vacancy_id: uuid.UUID, services: ServiceFactory = Depends(
 
     Требуемое состояние: -
 
-    Требуемые права доступа: GET_PUBLIC_ARTICLES / GET_PRIVATE_ARTICLES / GET_SELF_ARTICLES
+    Требуемые права доступа: GET_PRIVATE_VACANCY / GET_PUBLIC_VACANCY
     """
     return VacancyResponse(content=await services.vacancy.get_vacancy(vacancy_id))
 

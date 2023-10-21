@@ -5,7 +5,7 @@ from pydantic import BaseModel, field_validator
 
 from src.models.file_type import FileType
 from src.models.schemas.s3 import PreSignedPostUrl
-from src.models.state import VacancyState
+from src.models.state import VacancyState, VacancyType
 
 
 class Vacancy(BaseModel):
@@ -13,6 +13,7 @@ class Vacancy(BaseModel):
     title: str
     content: str
     poster: uuid.UUID | None
+    type: VacancyType
     state: VacancyState
     test_time: int
 
@@ -27,6 +28,7 @@ class VacancySmall(BaseModel):
     id: uuid.UUID
     title: str
     poster: uuid.UUID | None
+    type: VacancyType
     state: VacancyState
 
     created_at: datetime
@@ -39,6 +41,7 @@ class VacancySmall(BaseModel):
 class VacancyCreate(BaseModel):
     title: str
     content: str
+    type: VacancyType
     state: VacancyState
     test_time: int
 
@@ -71,6 +74,7 @@ class VacancyUpdate(BaseModel):
     title: str = None
     content: str = None
     state: VacancyState = None
+    type: VacancyType = None
 
     class Config:
         extra = 'ignore'

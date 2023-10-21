@@ -18,8 +18,8 @@ class Vacancy(Base):
     title = Column(VARCHAR(255), nullable=False)
     poster = Column(UUID(as_uuid=True), nullable=True)
     content = Column(VARCHAR(32000), nullable=False)
-    type = Column(Enum(VacancyType))
-    state = Column(Enum(VacancyState), default=VacancyState.CLOSED)
+    type = Column(Enum(VacancyType), default=VacancyType.INTERNSHIP, nullable=False)
+    state = Column(Enum(VacancyState), default=VacancyState.CLOSED, nullable=False)
     test_time = Column(INTEGER(), nullable=False)
 
     files = relationship("models.tables.file.File", back_populates="vacancy")
