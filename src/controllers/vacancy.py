@@ -16,11 +16,11 @@ router = APIRouter()
 
 @router.get("/list", response_model=VacanciesResponse, status_code=http_status.HTTP_200_OK)
 async def get_vacancy_list(
+        state: VacancyState,
         page: int = 1,
         per_page: int = 10,
         order_by: Literal["title", "updated_at", "created_at"] = "created_at",
         query: str = None,
-        state: VacancyState = VacancyState.OPENED,
         services: ServiceFactory = Depends(get_services)
 ):
     """
@@ -31,7 +31,13 @@ async def get_vacancy_list(
     Требуемые права доступа: GET_PRIVATE_VACANCY / GET_PUBLIC_VACANCY
     """
     return VacanciesResponse(
-        content=await services.vacancy.get_vacancies(page, per_page, order_by, query, state)
+        content=await services.vacancy.get_vacancies(
+            state=state,
+            page=page,
+            per_page=per_page,
+            order_by=order_by,
+            query=query
+        )
     )
 
 

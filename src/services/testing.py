@@ -325,7 +325,7 @@ class TestingApplicationService:
         if vacancy.state != VacancyState.OPENED:
             raise exceptions.BadRequest(f"Вакансия с id:{vacancy_id} не открыта")
 
-        testing = await self._repo.create(**data.model_dump())
+        testing = await self._repo.create(**data.model_dump(), vacancy_id=vacancy_id)
         return schemas.Testing.model_validate(testing)
 
     @permission_filter(Permission.UPDATE_TESTING)
@@ -350,7 +350,8 @@ class TestingApplicationService:
         if vacancy.state != VacancyState.OPENED:
             raise exceptions.BadRequest(f"Вакансия с id:{testing.vacancy_id} не открыта")
 
-        testing = await self._repo.update(**data.model_dump(exclude_unset=True))
+        await self._repo.update(testing_id, **data.model_dump(exclude_unset=True))
+        testing = await self._repo.get(id=testing_id)
         return schemas.Testing.model_validate(testing)
 
     @permission_filter(Permission.DELETE_TESTING)

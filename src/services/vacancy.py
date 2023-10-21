@@ -30,11 +30,11 @@ class VacancyApplicationService:
 
     async def get_vacancies(
             self,
+            state: VacancyState,
             page: int = 1,
             per_page: int = 10,
             order_by: Literal["title", "updated_at", "created_at"] = "created_at",
-            query: str = None,
-            state: VacancyState = VacancyState.OPENED,
+            query: str = None
     ) -> list[schemas.VacancySmall]:
         """
         Получить список вакансий
@@ -113,8 +113,7 @@ class VacancyApplicationService:
     @state_filter(UserState.ACTIVE)
     async def create_vacancy(self, data: schemas.VacancyCreate) -> schemas.Vacancy:
         vacancy = await self._repo.create(
-            **data.model_dump(),
-            owner_id=self._current_user.id
+            **data.model_dump()
         )
         return schemas.Vacancy.model_validate(vacancy)
 

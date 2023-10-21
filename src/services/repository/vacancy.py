@@ -39,10 +39,6 @@ class VacancyRepo(BaseRepository[tables.Vacancy]):
             **kwargs
         )
 
-    async def get(self, **kwargs) -> tables.Vacancy:
-        stmt = select(self.table).filter_by(**kwargs).options(subqueryload(self.table.tags))
-        return (await self._session.execute(stmt)).scalars().first()
-
     async def __get_range(
             self,
             *,
@@ -72,5 +68,5 @@ class VacancyRepo(BaseRepository[tables.Vacancy]):
             stmt = stmt.where(
                 or_(*[getattr(self.table, field).ilike(f"%{query}%") for field in fields])
             )
-
-        return await self._session.execute(stmt).scalars().all()
+        result = await self._session.execute(stmt)
+        return result.scalars().all()

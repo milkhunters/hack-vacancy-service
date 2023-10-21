@@ -40,6 +40,7 @@ class VacancyCreate(BaseModel):
     title: str
     content: str
     state: VacancyState
+    test_time: int
 
     @field_validator('content')
     def content_must_be_valid(cls, value):
@@ -59,6 +60,12 @@ class VacancyCreate(BaseModel):
             raise ValueError("Заголовок не может содержать больше 255 символов")
         return value
 
+    @field_validator('test_time')
+    def test_time_must_be_valid(cls, value):
+        if value < 0:
+            raise ValueError("Время теста не может быть отрицательным")
+        return value
+    
 
 class VacancyUpdate(BaseModel):
     title: str = None

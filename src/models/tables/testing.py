@@ -22,7 +22,7 @@ class Testing(Base):
 
     vacancy_id = Column(UUID(as_uuid=True), ForeignKey("vacancies.id"), nullable=False)
     vacancy = relationship("models.tables.vacancy.Vacancy", back_populates="testing")
-    attempts = relationship("models.tables.attempts.Attempts", back_populates="test")
+    attempts = relationship("models.tables.attempt.Attempt", back_populates="test")
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

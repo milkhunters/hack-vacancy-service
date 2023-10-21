@@ -17,7 +17,7 @@ class TheoreticalQuestion(Base):
     content = Column(VARCHAR(32000), nullable=False)
 
     testing_id = Column(UUID(as_uuid=True), nullable=False)
-    answer_options = relationship("models.tables.theoretical_question.AnswerOptions", back_populates="question")
+    answer_options = relationship("models.tables.theoretical_question.AnswerOption", back_populates="question")
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
