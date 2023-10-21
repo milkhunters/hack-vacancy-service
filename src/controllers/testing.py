@@ -259,7 +259,7 @@ async def finish_theoretical_testing(
 
 @router.post(
     "/{testing_id}/practical/new",
-    response_model=None,
+    response_model=PracticalQuestionResponse,
     status_code=http_status.HTTP_201_CREATED
 )
 async def new_practical_question(
@@ -275,12 +275,14 @@ async def new_practical_question(
     Требуемые права доступа: CREATE_TESTING
 
     """
-    await services.testing.create_practical_question(testing_id, data)
+    return PracticalQuestionResponse(
+        content=await services.testing.create_practical_question(testing_id, data)
+    )
 
 
 @router.post(
     "/{testing_id}/theoretical/new",
-    response_model=None,
+    response_model=TheoreticalQuestionResponse,
     status_code=http_status.HTTP_201_CREATED
 )
 async def new_theoretical_question(
@@ -296,16 +298,17 @@ async def new_theoretical_question(
     Требуемые права доступа: CREATE_TESTING
 
     """
-    await services.testing.create_theoretical_question(testing_id, data)
+    return TheoreticalQuestionResponse(
+        content=await services.testing.create_theoretical_question(testing_id, data)
+    )
 
 
 @router.get(
-    "/{testing_id}/practical/{question_id}",
+    "/practical/{question_id}",
     response_model=PracticalQuestionResponse,
     status_code=http_status.HTTP_200_OK
 )
 async def get_practical_question(
-        testing_id: UUID,
         question_id: UUID,
         services: ServiceFactory = Depends(get_services)
 ):
@@ -318,17 +321,16 @@ async def get_practical_question(
 
     """
     return PracticalQuestionResponse(
-        content=await services.testing.get_practical_question(testing_id, question_id)
+        content=await services.testing.get_practical_question(question_id)
     )
 
 
 @router.get(
-    "/{testing_id}/theoretical/{question_id}",
+    "/theoretical/{question_id}",
     response_model=TheoreticalQuestionResponse,
     status_code=http_status.HTTP_200_OK
 )
 async def get_theoretical_question(
-        testing_id: UUID,
         question_id: UUID,
         services: ServiceFactory = Depends(get_services)
 ):
@@ -341,5 +343,154 @@ async def get_theoretical_question(
 
     """
     return TheoreticalQuestionResponse(
-        content=await services.testing.get_theoretical_question(testing_id, question_id)
+        content=await services.testing.get_theoretical_question(question_id)
+    )
+
+
+@router.post(
+    "/practical/{question_id}",
+    response_model=None,
+    status_code=http_status.HTTP_204_NO_CONTENT
+)
+async def update_practical_question(
+        question_id: UUID,
+        data: schemas.PracticalQuestionUpdate,
+        services: ServiceFactory = Depends(get_services)
+):
+    """
+    Обновить практический вопрос для тестирования по id
+
+    Требуемое состояние: ACTIVE
+
+    Требуемые права доступа: UPDATE_TESTING
+
+    """
+    await services.testing.update_practical_question(question_id, data)
+
+
+@router.post(
+    "/theoretical/{question_id}",
+    response_model=None,
+    status_code=http_status.HTTP_204_NO_CONTENT
+)
+async def update_theoretical_question(
+        question_id: UUID,
+        data: schemas.TheoreticalQuestionUpdate,
+        services: ServiceFactory = Depends(get_services)
+):
+    """
+    Обновить теоретический вопрос для тестирования по id
+
+    Требуемое состояние: ACTIVE
+
+    Требуемые права доступа: UPDATE_TESTING
+
+    """
+    await services.testing.update_theoretical_question(question_id, data)
+
+
+@router.delete(
+    "/practical/{question_id}",
+    response_model=None,
+    status_code=http_status.HTTP_204_NO_CONTENT
+)
+async def delete_practical_question(
+        question_id: UUID,
+        services: ServiceFactory = Depends(get_services)
+):
+    """
+    Удалить практический вопрос для тестирования по id
+
+    Требуемое состояние: ACTIVE
+
+    Требуемые права доступа: DELETE_TESTING
+
+    """
+    await services.testing.delete_practical_question(question_id)
+
+
+@router.delete(
+    "/theoretical/{question_id}",
+    response_model=None,
+    status_code=http_status.HTTP_204_NO_CONTENT
+)
+async def delete_theoretical_question(
+        question_id: UUID,
+        services: ServiceFactory = Depends(get_services)
+):
+    """
+    Удалить теоретический вопрос для тестирования по id
+
+    Требуемое состояние: ACTIVE
+
+    Требуемые права доступа: DELETE_TESTING
+
+    """
+    await services.testing.delete_theoretical_question(question_id)
+
+
+@router.post(
+    "/theoretical/{question_id}/option/new",
+    response_model=TheoreticalQuestionResponse,
+    status_code=http_status.HTTP_201_CREATED
+)
+async def create_theoretical_question_option(
+        question_id: UUID,
+        data: schemas.AnswerOptionCreate,
+        services: ServiceFactory = Depends(get_services)
+):
+    """
+    Создать вариант ответа для теоретического вопроса тестирования по id
+
+    Требуемое состояние: ACTIVE
+
+    Требуемые права доступа: CREATE_TESTING
+
+    """
+    return TheoreticalQuestionResponse(
+        content=await services.testing.create_theoretical_question_option(question_id, data)
+    )
+
+
+@router.get(
+    "/theoretical/{testing_id}/list",
+    response_model=TheoreticalQuestionsResponse,
+    status_code=http_status.HTTP_200_OK
+)
+async def get_theoretical_questions(
+        testing_id: UUID,
+        services: ServiceFactory = Depends(get_services)
+):
+    """
+    Получить вариант ответа для теоретического вопроса тестирования по id
+
+    Требуемое состояние: ACTIVE
+
+    Требуемые права доступа: UPDATE_TESTING
+
+    """
+    return TheoreticalQuestionsResponse(
+        content=await services.testing.get_theoretical_questions(testing_id)
+    )
+
+
+@router.get(
+    "/practical/{testing_id}/list",
+    response_model=PracticalQuestionsResponse,
+    status_code=http_status.HTTP_200_OK
+)
+async def get_practical_questions(
+        testing_id: UUID,
+        services: ServiceFactory = Depends(get_services)
+):
+    """
+    Получить вариант ответа для практического вопроса тестирования по id
+
+    Требуемое состояние: ACTIVE
+
+    Требуемые права доступа: UPDATE_TESTING
+
+    """
+    return PracticalQuestionsResponse(
+        content=await services.testing.get_practical_questions(testing_id)
     )

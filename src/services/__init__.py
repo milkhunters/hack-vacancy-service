@@ -39,6 +39,7 @@ class ServiceFactory:
             vacancy_repo=self._repo.vacancy,
             practical_question_repo=self._repo.practical_question,
             theoretical_question_repo=self._repo.theoretical_question,
+            answer_option_repo=self._repo.answer_option,
         )
 
     @property
