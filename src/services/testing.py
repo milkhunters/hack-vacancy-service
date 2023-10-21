@@ -177,7 +177,12 @@ class TestingApplicationService:
                 raise exceptions.BadRequest(f"Время прохождения теста истекло")
 
         questions = await self._practical_question_repo.get_all(testing_id=testing_id)
-        return [schemas.PracticalQuestion.model_validate(question) for question in questions]
+        response = []
+        for question in questions:
+            model = schemas.PracticalQuestion.model_validate(question)
+            model.answer = None
+            response.append(model)
+        return response
 
     @permission_filter(Permission.START_TESTING)
     @state_filter(UserState.ACTIVE)
@@ -312,13 +317,13 @@ class TestingApplicationService:
     async def complete_practical_testing(
             self,
             testing_id: uuid.UUID,
-            data: list[schemas.AnswerToPracticalQuestion]
+            answers: list[schemas.AnswerToPracticalQuestion]
     ) -> schemas.AttemptTest:
         """
         Завершить практическое тестирование
 
         :param testing_id: id тестирования
-        :param data: данные прохождения тестирования
+        :param answers: данные прохождения тестирования
         :return:
 
         """
@@ -351,15 +356,28 @@ class TestingApplicationService:
 
         questions = await self._practical_question_repo.get_all(testing_id=testing_id)
         correct_answers = 0
+        for answer in answers:
+            question = await self._practical_question_repo.get(id=answer.question_id)
+            if not question:
+                raise exceptions.NotFound(f"Вопрос с id:{answer.question_id} не найден")
 
-        # todo
+            is_correct = False
+
+            if is_correct:
+                correct_answers += 1
+
+        all_questions = len(questions)
+
+        if all_questions == 0:
+            user_percent = 0
+        else:
+            user_percent = int((correct_answers * 100) / all_questions)
 
         attempt = schemas.AttemptTest.model_validate(
             await self._attempt_repo.create(
+                percent=user_percent,
                 user_id=self._current_user.id,
-                testing_id=testing_id,
-                correct_answers=correct_answers,
-                total_answers=len(questions)
+                test_id=testing_id,
             )
         )
         return schemas.AttemptTest(**attempt.model_dump(), test=schemas.Testing.model_validate(testing))

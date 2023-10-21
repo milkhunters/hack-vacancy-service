@@ -10,7 +10,7 @@ class PracticalQuestion(BaseModel):
     id: UUID
     content: str
     language: ProgramLanguage
-    answer: str
+    answer: str | None
 
     testing_id: UUID
 
