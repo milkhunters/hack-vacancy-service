@@ -348,8 +348,8 @@ class TestingApplicationService:
         )
 
         if first_attempt:
-            time_now = datetime.now()
-            time_deadline = first_attempt.created_at + timedelta(days=vacancy.test_time)
+            time_now = datetime.now().replace(tzinfo=None)
+            time_deadline = (first_attempt.created_at + timedelta(days=vacancy.test_time)).replace(tzinfo=None)
 
             if time_now > time_deadline:
                 raise exceptions.BadRequest(f"Время прохождения теста истекло")
@@ -387,7 +387,7 @@ class TestingApplicationService:
                 test_id=testing_id,
             )
         )
-        return schemas.AttemptTest(**attempt.model_dump(), test=schemas.Testing.model_validate(testing))
+        return schemas.AttemptTest(**attempt.model_dump(exclude={"test"}), test=schemas.Testing.model_validate(testing))
 
     @permission_filter(Permission.CREATE_TESTING)
     @state_filter(UserState.ACTIVE)
