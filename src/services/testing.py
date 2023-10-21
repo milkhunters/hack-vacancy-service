@@ -6,10 +6,11 @@ from src import exceptions
 from src.models import schemas
 from src.models.auth import BaseUser
 from src.models.permission import Permission
-from src.models.state import VacancyState, UserState
+from src.models.state import VacancyState, UserState, TestType
 from src.services.auth.filters import permission_filter
 from src.services.auth.filters import state_filter
-from src.services.repository import AttemptRepo, VacancyRepo, PracticalQuestionRepo, TheoreticalQuestionRepo
+from src.services.repository import AttemptRepo, VacancyRepo, PracticalQuestionRepo, TheoreticalQuestionRepo, \
+    AnswerOptionRepo
 from src.services.repository import TestingRepo
 
 
@@ -23,6 +24,7 @@ class TestingApplicationService:
             vacancy_repo: VacancyRepo,
             practical_question_repo: PracticalQuestionRepo,
             theoretical_question_repo: TheoreticalQuestionRepo,
+            answer_option_repo: AnswerOptionRepo
     ):
         self._current_user = current_user
         self._repo = testing_repo
@@ -30,6 +32,7 @@ class TestingApplicationService:
         self._vacancy_repo = vacancy_repo
         self._practical_question_repo = practical_question_repo
         self._theoretical_question_repo = theoretical_question_repo
+        self._answer_option_repo = answer_option_repo
 
     @permission_filter(Permission.GET_SELF_TEST_RESULTS)
     @state_filter(UserState.ACTIVE)
@@ -440,6 +443,9 @@ class TestingApplicationService:
         if vacancy.state != VacancyState.OPENED:
             raise exceptions.BadRequest(f"Вакансия с id:{testing.vacancy_id} не открыта")
 
+        if testing.type != TestType.PRACTICAL:
+            raise exceptions.BadRequest(f"Тестирование с id:{testing_id} не является практическим")
+
         question = await self._practical_question_repo.create(**data.model_dump(), testing_id=testing_id)
         return schemas.PracticalQuestion.model_validate(question)
 
@@ -469,7 +475,11 @@ class TestingApplicationService:
         if vacancy.state != VacancyState.OPENED:
             raise exceptions.BadRequest(f"Вакансия с id:{testing.vacancy_id} не открыта")
 
-        question = await self._theoretical_question_repo.create(**data.model_dump(), testing_id=testing_id)
+        if testing.type != TestType.THEORETICAL:
+            raise exceptions.BadRequest(f"Тестирование с id:{testing_id} не является теоретическим")
+
+        _ = await self._theoretical_question_repo.create(**data.model_dump(), testing_id=testing_id)
+        question = await self._theoretical_question_repo.get(id=_.id, as_full=True)
         return schemas.TheoreticalQuestion.model_validate(question)
 
     @permission_filter(Permission.UPDATE_TESTING)
@@ -576,8 +586,57 @@ class TestingApplicationService:
         :return:
 
         """
-        question = await self._theoretical_question_repo.get(id=question_id)
+        question = await self._theoretical_question_repo.get(id=question_id, as_full=True)
         if not question:
             raise exceptions.NotFound(f"Теоретический вопрос с id:{question_id} не найден")
 
         return schemas.TheoreticalQuestion.model_validate(question)
+
+    @permission_filter(Permission.UPDATE_TESTING)
+    @state_filter(UserState.ACTIVE)
+    async def create_theoretical_question_option(
+            self,
+            question_id: uuid.UUID,
+            data: schemas.AnswerOptionCreate
+    ) -> schemas.TheoreticalQuestion:
+        """
+        Создать вариант ответа на теоретический вопрос
+
+        :param question_id: id теоретического вопроса
+        :param data: данные варианта ответа
+        :return:
+
+        """
+        question = await self._theoretical_question_repo.get(id=question_id)
+        if not question:
+            raise exceptions.NotFound(f"Теоретический вопрос с id:{question_id} не найден")
+
+        await self._answer_option_repo.create(**data.model_dump(), question_id=question_id)
+        new_question = await self._theoretical_question_repo.get(id=question.id, as_full=True)
+        return schemas.TheoreticalQuestion.model_validate(new_question)
+
+    @permission_filter(Permission.UPDATE_TESTING)
+    @state_filter(UserState.ACTIVE)
+    async def get_practical_questions(self, testing_id: uuid.UUID) -> list[schemas.PracticalQuestion]:
+        """
+        Получить список практических вопросов для тестирования
+
+        :param testing_id: id тестирования
+        :return:
+
+        """
+        questions = await self._practical_question_repo.get_all(testing_id=testing_id)
+        return [schemas.PracticalQuestion.model_validate(question) for question in questions]
+
+    @permission_filter(Permission.UPDATE_TESTING)
+    @state_filter(UserState.ACTIVE)
+    async def get_theoretical_questions(self, testing_id: uuid.UUID) -> list[schemas.TheoreticalQuestion]:
+        """
+        Получить список теоретических вопросов для тестирования
+
+        :param testing_id: id тестирования
+        :return:
+
+        """
+        questions = await self._theoretical_question_repo.get_all(testing_id=testing_id, as_full=True)
+        return [schemas.TheoreticalQuestion.model_validate(question) for question in questions]
