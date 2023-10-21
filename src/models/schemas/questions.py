@@ -57,12 +57,26 @@ class PracticalQuestionUpdate(BaseModel):
         return value
 
 
+class AnswerOption(BaseModel):
+    id: UUID
+    content: str
+    is_correct: bool
+
+    question_id: UUID
+
+    created_at: datetime
+    updated_at: datetime | None
+
+    class Config:
+        from_attributes = True
+
+
 class TheoreticalQuestion(BaseModel):
     id: UUID
     content: str
 
     testing_id: UUID
-    answer_options: list['AnswerOption']
+    answer_options: list[AnswerOption]
 
     created_at: datetime
     updated_at: datetime | None
@@ -89,20 +103,6 @@ class TheoreticalQuestionUpdate(BaseModel):
         if value and len(value) > 32000:
             raise ValueError("Содержание не может быть более 32000 символов")
         return value
-
-
-class AnswerOption(BaseModel):
-    id: UUID
-    content: str
-    is_correct: bool
-
-    question_id: UUID
-
-    created_at: datetime
-    updated_at: datetime | None
-
-    class Config:
-        from_attributes = True
 
 
 class AnswerOptionCreate(BaseModel):

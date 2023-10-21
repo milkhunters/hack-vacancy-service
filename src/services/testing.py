@@ -413,3 +413,171 @@ class TestingApplicationService:
 
         testings = await self._repo.get_all(vacancy_id=vacancy_id)
         return [schemas.Testing.model_validate(testing) for testing in testings]
+
+    @permission_filter(Permission.UPDATE_TESTING)
+    @state_filter(UserState.ACTIVE)
+    async def create_practical_question(
+            self,
+            testing_id: uuid.UUID,
+            data: schemas.PracticalQuestionCreate
+    ) -> schemas.PracticalQuestion:
+        """
+        Создать практический вопрос для тестирования
+
+        :param testing_id: id тестирования
+        :param data: данные практического вопроса
+        :return:
+
+        """
+        testing = await self._repo.get(id=testing_id)
+        if not testing:
+            raise exceptions.NotFound(f"Тестирование с id:{testing_id} не найдено")
+
+        vacancy = await self._vacancy_repo.get(id=testing.vacancy_id)
+        if not vacancy:
+            raise exceptions.NotFound(f"Вакансия с id:{testing.vacancy_id} не найдена")
+
+        if vacancy.state != VacancyState.OPENED:
+            raise exceptions.BadRequest(f"Вакансия с id:{testing.vacancy_id} не открыта")
+
+        question = await self._practical_question_repo.create(**data.model_dump(), testing_id=testing_id)
+        return schemas.PracticalQuestion.model_validate(question)
+
+    @permission_filter(Permission.CREATE_TESTING)
+    @state_filter(UserState.ACTIVE)
+    async def create_theoretical_question(
+            self,
+            testing_id: uuid.UUID,
+            data: schemas.TheoreticalQuestionCreate
+    ) -> schemas.TheoreticalQuestion:
+        """
+        Создать теоретический вопрос для тестирования
+
+        :param testing_id: id тестирования
+        :param data: данные теоретического вопроса
+        :return:
+
+        """
+        testing = await self._repo.get(id=testing_id)
+        if not testing:
+            raise exceptions.NotFound(f"Тестирование с id:{testing_id} не найдено")
+
+        vacancy = await self._vacancy_repo.get(id=testing.vacancy_id)
+        if not vacancy:
+            raise exceptions.NotFound(f"Вакансия с id:{testing.vacancy_id} не найдена")
+
+        if vacancy.state != VacancyState.OPENED:
+            raise exceptions.BadRequest(f"Вакансия с id:{testing.vacancy_id} не открыта")
+
+        question = await self._theoretical_question_repo.create(**data.model_dump(), testing_id=testing_id)
+        return schemas.TheoreticalQuestion.model_validate(question)
+
+    @permission_filter(Permission.UPDATE_TESTING)
+    @state_filter(UserState.ACTIVE)
+    async def update_practical_question(
+            self,
+            question_id: uuid.UUID,
+            data: schemas.PracticalQuestionUpdate
+    ) -> schemas.PracticalQuestion:
+        """
+        Обновить практический вопрос для тестирования
+
+        :param question_id: id практического вопроса
+        :param data: данные практического вопроса
+        :return:
+
+        """
+        question = await self._practical_question_repo.get(id=question_id)
+        if not question:
+            raise exceptions.NotFound(f"Практический вопрос с id:{question_id} не найден")
+
+        await self._practical_question_repo.update(question_id, **data.model_dump(exclude_unset=True))
+        question = await self._practical_question_repo.get(id=question_id)
+        return schemas.PracticalQuestion.model_validate(question)
+
+    @permission_filter(Permission.UPDATE_TESTING)
+    @state_filter(UserState.ACTIVE)
+    async def update_theoretical_question(
+            self,
+            question_id: uuid.UUID,
+            data: schemas.TheoreticalQuestionUpdate
+    ) -> schemas.TheoreticalQuestion:
+        """
+        Обновить теоретический вопрос для тестирования
+
+        :param question_id: id теоретического вопроса
+        :param data: данные теоретического вопроса
+        :return:
+
+        """
+        question = await self._theoretical_question_repo.get(id=question_id)
+        if not question:
+            raise exceptions.NotFound(f"Теоретический вопрос с id:{question_id} не найден")
+
+        await self._theoretical_question_repo.update(question_id, **data.model_dump(exclude_unset=True))
+        question = await self._theoretical_question_repo.get(id=question_id)
+        return schemas.TheoreticalQuestion.model_validate(question)
+
+    @permission_filter(Permission.DELETE_TESTING)
+    @state_filter(UserState.ACTIVE)
+    async def delete_practical_question(self, question_id: uuid.UUID) -> None:
+        """
+        Удалить практический вопрос для тестирования
+
+        :param question_id: id практического вопроса
+        :return:
+
+        """
+        question = await self._practical_question_repo.get(id=question_id)
+        if not question:
+            raise exceptions.NotFound(f"Практический вопрос с id:{question_id} не найден")
+
+        await self._practical_question_repo.delete(id=question_id)
+
+    @permission_filter(Permission.DELETE_TESTING)
+    @state_filter(UserState.ACTIVE)
+    async def delete_theoretical_question(self, question_id: uuid.UUID) -> None:
+        """
+        Удалить теоретический вопрос для тестирования
+
+        :param question_id: id теоретического вопроса
+        :return:
+
+        """
+        question = await self._theoretical_question_repo.get(id=question_id)
+        if not question:
+            raise exceptions.NotFound(f"Теоретический вопрос с id:{question_id} не найден")
+
+        await self._theoretical_question_repo.delete(id=question_id)
+
+    @permission_filter(Permission.UPDATE_TESTING)
+    @state_filter(UserState.ACTIVE)
+    async def get_practical_question(self, question_id: uuid.UUID) -> schemas.PracticalQuestion:
+        """
+        Получить практический вопрос для тестирования
+
+        :param question_id: id практического вопроса
+        :return:
+
+        """
+        question = await self._practical_question_repo.get(id=question_id)
+        if not question:
+            raise exceptions.NotFound(f"Практический вопрос с id:{question_id} не найден")
+
+        return schemas.PracticalQuestion.model_validate(question)
+
+    @permission_filter(Permission.UPDATE_TESTING)
+    @state_filter(UserState.ACTIVE)
+    async def get_theoretical_question(self, question_id: uuid.UUID) -> schemas.TheoreticalQuestion:
+        """
+        Получить теоретический вопрос для тестирования
+
+        :param question_id: id теоретического вопроса
+        :return:
+
+        """
+        question = await self._theoretical_question_repo.get(id=question_id)
+        if not question:
+            raise exceptions.NotFound(f"Теоретический вопрос с id:{question_id} не найден")
+
+        return schemas.TheoreticalQuestion.model_validate(question)
