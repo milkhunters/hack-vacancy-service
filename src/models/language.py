@@ -2,6 +2,6 @@ from enum import Enum
 
 
 class ProgramLanguage(int, Enum):
-    JAVA = 0
-    PYTHON = 1
-    C = 2
+    JAVA = 62
+    PYTHON = 71
+    C = 75

@@ -57,6 +57,7 @@ class Config:
     JWT: JWT
     BASE: Base
     DB: DbConfig
+    judge0host: str
 
 
 def to_bool(value) -> bool:
@@ -139,4 +140,5 @@ def load_consul_config(
                 PUBLIC_ENDPOINT_URL=config("DATABASE", "S3", "PUBLIC_ENDPOINT_URL")
             ),
         ),
+        judge0host=config("judge0host")
     )
