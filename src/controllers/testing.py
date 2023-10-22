@@ -7,6 +7,7 @@ from fastapi import status as http_status
 from src.dependencies.services import get_services
 from src.models import schemas
 from src.services import ServiceFactory
+from src.views.request import ApprovedRequestsResponse
 from src.views.testing import TestingsResponse
 from src.views.testing import PracticalQuestionsResponse
 from src.views.testing import TheoreticalQuestionsResponse
@@ -100,35 +101,20 @@ async def get_self_testing_attempts(
 
 
 @router.get(
-    "/attempts/{user_id}",
-    response_model=AttemptsTestResponse,
+    "/approved/users",
+    response_model=ApprovedRequestsResponse,
     status_code=http_status.HTTP_200_OK
 )
-async def get_user_attempts(
-        page: int = 1,
-        per_page: int = 10,
-        order_by: Literal["title", "created_at"] = "created_at",
-        query: str = None,
-        user_id: UUID = None,
-        services: ServiceFactory = Depends(get_services)
-):
+async def get_approved_user(services: ServiceFactory = Depends(get_services)):
     """
-    Получить результаты тестирования пользователя по id
+    Получить список одобренных пользователей
 
     Требуемое состояние: ACTIVE
 
     Требуемые права доступа: GET_USER_TEST_RESULTS
 
     """
-    return AttemptsTestResponse(
-        content=await services.testing.get_user_attempts(
-            page=page,
-            per_page=per_page,
-            order_by=order_by,
-            query=query,
-            user_id=user_id
-        )
-    )
+    return ApprovedRequestsResponse(content=await services.testing.get_approved_users())
 
 
 @router.delete("/{testing_id}", response_model=None, status_code=http_status.HTTP_204_NO_CONTENT)

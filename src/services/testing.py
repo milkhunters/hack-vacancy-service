@@ -83,62 +83,9 @@ class TestingApplicationService:
 
     @permission_filter(Permission.GET_USER_TEST_RESULTS)
     @state_filter(UserState.ACTIVE)
-    async def get_user_attempts(
-            self,
-            page: int = 1,
-            per_page: int = 10,
-            order_by: Literal["title", "created_at"] = "created_at",
-            query: str = None,
-            user_id: uuid.UUID = None,
-            is_correct: bool = None
-    ) -> list[schemas.AttemptTest]:
-        """
-        Получить общий список удачных попыток прохождения тестирования пользователей
-
-        :param page: номер страницы (всегда >= 1)
-        :param per_page: количество статей на странице (всегда >= 1, но <= per_page_limit)
-        :param order_by: поле сортировки
-        :param query: строка поиска
-        :param user_id: id пользователя
-        :param is_correct: результат прохождения тестирования
-
-        :return:
-
-        """
-
-        if page < 1:
-            raise exceptions.NotFound("Страница не найдена")
-        if per_page < 1:
-            raise exceptions.BadRequest("Неверное количество элементов на странице")
-
-        per_page_limit = 40
-
-        # Подготовка входных данных
-        per_page = min(per_page, per_page_limit, 2147483646)
-        offset = min((page - 1) * per_page, 2147483646)
-
-        # some = await self._attempt_repo.get_successful_attempts()
-        # Выполнение запроса
-        if query:
-            attempts = await self._attempt_repo.search(
-                limit=per_page,
-                offset=offset,
-                order_by=order_by,
-                as_full=True,
-                query=query,
-                # **{"is_correct": is_correct} if is_correct is not None else {},
-                **{"user_id": user_id} if user_id else {}
-            )
-        else:
-            attempts = await self._attempt_repo.get_all(
-                limit=per_page,
-                offset=offset,
-                order_by=order_by,
-                as_full=True,
-                # **{"is_correct": is_correct} if is_correct is not None else {},
-                **{"user_id": user_id} if user_id else {}
-            )
-        return [schemas.AttemptTest.model_validate(attempt) for attempt in attempts]
+    async def get_approved_users(self) -> list[schemas.ApprovedRequests]:
+        requests = await self._attempt_repo.get_successful_requests()
+        return [schemas.ApprovedRequests.model_validate(request) for request in requests]
 
     @permission_filter(Permission.START_TESTING)
     @state_filter(UserState.ACTIVE)
@@ -403,9 +350,6 @@ class TestingApplicationService:
         vacancy = await self._vacancy_repo.get(id=vacancy_id)
         if not vacancy:
             raise exceptions.NotFound(f"Вакансия с id:{vacancy_id} не найдена")
-
-        if vacancy.state != VacancyState.OPENED:
-            raise exceptions.BadRequest(f"Вакансия с id:{vacancy_id} не открыта")
 
         testing = await self._repo.create(**data.model_dump(), vacancy_id=vacancy_id)
         return schemas.Testing.model_validate(testing)
