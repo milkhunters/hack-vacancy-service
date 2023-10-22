@@ -691,10 +691,10 @@ class TestingApplicationService:
             headers = {"Content-Type": "application/json"}
             params = {"base64_encoded": "true", "wait": str(True).lower()}
 
-            code_as_byte = answer.answer.encode('ascii')
+            code_as_byte = answer.answer.encode('utf-8')
 
             data = {
-                "source_code": base64.b64encode(code_as_byte).decode('ascii'),
+                "source_code": base64.b64encode(code_as_byte).decode('utf-8'),
                 "language_id": question.language.value,
             }
 
@@ -736,10 +736,10 @@ class TestingApplicationService:
         headers = {"Content-Type": "application/json"}
         params = {"base64_encoded": "true", "wait": str(True).lower()}
 
-        code_as_byte = code.encode('ascii')
+        code_as_byte = code.encode('utf-8')
 
         data = {
-            "source_code": base64.b64encode(code_as_byte).decode('ascii'),
+            "source_code": base64.b64encode(code_as_byte).decode('utf-8'),
             "language_id": language.value,
         }
 
