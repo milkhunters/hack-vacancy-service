@@ -9,6 +9,7 @@ from src.config import Config
 
 from src.db import create_psql_async_session
 from src.services.auth.scheduler import update_reauth_list
+from src.utils.aiohttp_client import AiohttpClient
 from src.utils.s3 import S3Storage
 
 
@@ -69,6 +70,7 @@ def create_start_app_handler(app: FastAPI, config: Config) -> Callable:
         app.state.reauth_session_dict = dict()
         await init_reauth_checker(app, config)
 
+        app.state.http_client = AiohttpClient()
         # asyncio.get_running_loop().create_task(grpc_server(app.state))
         logging.info("FastAPI Успешно запущен.")
 
@@ -78,5 +80,6 @@ def create_start_app_handler(app: FastAPI, config: Config) -> Callable:
 def create_stop_app_handler(app: FastAPI) -> Callable:
     async def stop_app() -> None:
         logging.debug("Выполнение FastAPI shutdown event handler.")
+        await app.state.http_client.close_session()
 
     return stop_app

@@ -1,8 +1,13 @@
+import base64
 import uuid
 from datetime import datetime, timedelta
 from typing import Literal
+from urllib.parse import urljoin
+
+from fastapi import BackgroundTasks
 
 from src import exceptions
+from src.config import Config
 from src.models import schemas
 from src.models.auth import BaseUser
 from src.models.permission import Permission
@@ -12,6 +17,7 @@ from src.services.auth.filters import state_filter
 from src.services.repository import AttemptRepo, VacancyRepo, PracticalQuestionRepo, TheoreticalQuestionRepo, \
     AnswerOptionRepo
 from src.services.repository import TestingRepo
+from src.utils.aiohttp_client import AiohttpClient
 
 
 class TestingApplicationService:
@@ -24,8 +30,14 @@ class TestingApplicationService:
             vacancy_repo: VacancyRepo,
             practical_question_repo: PracticalQuestionRepo,
             theoretical_question_repo: TheoreticalQuestionRepo,
-            answer_option_repo: AnswerOptionRepo
+            answer_option_repo: AnswerOptionRepo,
+            http_client: AiohttpClient,
+            config: Config,
+            db_lazy_session,
     ):
+        self._db_lazy_session = db_lazy_session
+        self._config = config
+        self._http_client = http_client
         self._current_user = current_user
         self._repo = testing_repo
         self._attempt_repo = attempt_repo
@@ -264,13 +276,16 @@ class TestingApplicationService:
     async def complete_practical_testing(
             self,
             testing_id: uuid.UUID,
-            answers: list[schemas.AnswerToPracticalQuestion]
+            answers: list[schemas.AnswerToPracticalQuestion],
+            background_tasks: BackgroundTasks
     ) -> schemas.AttemptTest:
         """
         Завершить практическое тестирование
 
         :param testing_id: id тестирования
         :param answers: данные прохождения тестирования
+        :param background_tasks: фоновые задачи
+
         :return:
 
         """
@@ -303,37 +318,25 @@ class TestingApplicationService:
 
         questions = await self._practical_question_repo.get_all(testing_id=testing_id)
 
-        # Hashing
-        questions_hash = {}
-        for question in questions:
-            questions_hash[question.id] = question
-
-        # Проверка ответов
-        correct_answers = 0
-        for answer in answers:
-            question = questions_hash.get(answer.question_id)
-            if not question:
-                raise exceptions.NotFound(f"Вопрос с id:{answer.question_id} не найден")
-
-            is_correct = False
-
-            if is_correct:
-                correct_answers += 1
-
-        all_questions = len(questions)
-
-        if all_questions == 0:
-            user_percent = 0
-        else:
-            user_percent = int((correct_answers * 100) / all_questions)
-
         attempt = schemas.AttemptTest.model_validate(
             await self._attempt_repo.create(
-                percent=user_percent,
+                percent=0,
                 user_id=self._current_user.id,
                 test_id=testing_id,
             )
         )
+
+        # Проверка ответов
+        background_tasks.add_task(
+            TestingApplicationService.__checking_practical_answers,
+            questions,
+            answers,
+            self._db_lazy_session,
+            self._http_client,
+            self._config.judge0host,
+            attempt.id
+        )
+
         return schemas.AttemptTest(**attempt.model_dump(exclude={"test"}), test=schemas.Testing.model_validate(testing))
 
     @permission_filter(Permission.CREATE_TESTING)
@@ -663,3 +666,62 @@ class TestingApplicationService:
         """
         questions = await self._theoretical_question_repo.get_all(testing_id=testing_id, as_full=True)
         return [schemas.TheoreticalQuestion.model_validate(question) for question in questions]
+
+    @staticmethod
+    async def __checking_practical_answers(
+            questions: list[schemas.PracticalQuestion],
+            answers: list[schemas.AnswerToPracticalQuestion],
+            db_lazy_session,
+            http_client: AiohttpClient,
+            judge0host: str,
+            attempt_id: uuid.UUID
+    ):
+        # Hashing
+        questions_hash = {}
+        for question in questions:
+            questions_hash[question.id] = question
+
+        correct_answers = 0
+        for answer in answers:
+            question = questions_hash.get(answer.question_id)
+            if not question:
+                continue
+
+            headers = {"Content-Type": "application/json"}
+            params = {"base64_encoded": "true", "wait": str(True).lower()}
+
+            code_as_byte = answer.answer.encode('ascii')
+
+            data = {
+                "source_code": base64.b64encode(code_as_byte).decode('ascii'),
+                "language_id": question.language.value,
+            }
+
+            resp = await http_client.post(
+                urljoin(judge0host, "submissions"), headers=headers, params=params, json=data
+            )
+            resp_model = await resp.json()
+
+            print(resp_model)
+
+            if resp_model["stderr"]:
+                continue
+
+            if not resp_model["stdout"]:
+                continue
+
+            user_result = base64.b64decode(resp_model["stdout"]).decode('utf-8')
+
+            if user_result.replace("\n", "") == question.answer.replace("\n", ""):
+                correct_answers += 1
+
+        all_questions = len(questions)
+
+        if all_questions == 0:
+            user_percent = 0
+        else:
+            user_percent = int((correct_answers * 100) / all_questions)
+
+        async with db_lazy_session() as session:
+            attempt = AttemptRepo(session)
+            await attempt.update(attempt_id, percent=user_percent)

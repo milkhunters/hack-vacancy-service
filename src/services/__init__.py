@@ -15,11 +15,15 @@ class ServiceFactory:
             current_user: BaseUser,
             config,
             file_storage,
+            http_client,
+            db_lazy_session,
     ):
         self._repo = repo_factory
         self._current_user = current_user
         self._config = config
         self._file_storage = file_storage
+        self._http_client = http_client
+        self._db_lazy_session = db_lazy_session
 
     @property
     def vacancy(self) -> VacancyApplicationService:
@@ -40,6 +44,9 @@ class ServiceFactory:
             practical_question_repo=self._repo.practical_question,
             theoretical_question_repo=self._repo.theoretical_question,
             answer_option_repo=self._repo.answer_option,
+            http_client=self._http_client,
+            config=self._config,
+            db_lazy_session=self._db_lazy_session,
         )
 
     @property

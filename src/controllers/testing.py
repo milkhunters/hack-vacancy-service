@@ -1,7 +1,7 @@
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, BackgroundTasks
 from fastapi import status as http_status
 
 from src.dependencies.services import get_services
@@ -205,6 +205,7 @@ async def start_theoretical_testing(testing_id: UUID, services: ServiceFactory =
 async def finish_practical_testing(
         testing_id: UUID,
         data: list[schemas.AnswerToPracticalQuestion],
+        background_tasks: BackgroundTasks,
         services: ServiceFactory = Depends(get_services)
 ):
     """
@@ -216,7 +217,7 @@ async def finish_practical_testing(
 
     """
     return AttemptTestResponse(
-        content=await services.testing.complete_practical_testing(testing_id, data)
+        content=await services.testing.complete_practical_testing(testing_id, data, background_tasks)
     )
 
 

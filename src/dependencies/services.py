@@ -18,4 +18,6 @@ async def get_services(
         current_user=local_scope.get("user"),
         config=global_scope.config,
         file_storage=global_scope.file_storage,
+        http_client=global_scope.http_client,
+        db_lazy_session=global_scope.db_session,
     )
