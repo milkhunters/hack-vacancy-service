@@ -140,7 +140,7 @@ class TestingApplicationService:
         response = []
         for question in questions:
             model = schemas.PracticalQuestion.model_validate(question)
-            model.answer = None
+            # model.answer = None
             response.append(model)
         return response
 
@@ -751,18 +751,22 @@ class TestingApplicationService:
         is_correct = False
         stderr = resp_model["stderr"]
         stdout = resp_model["stdout"]
-
-        user_result = base64.b64decode(resp_model["stdout"]).decode('utf-8')
+        service_message = resp_model["status"].get("description")
 
         if stderr:
             is_correct = False
+            stderr = base64.b64decode(stderr).decode('utf-8')
 
-        if answer is not None and (user_result.replace("\n", "") == answer.replace("\n", "")):
+        if stdout:
             is_correct = True
+            stdout = base64.b64decode(stdout).decode('utf-8')
+
+        if answer is not None and stdout is not None:
+            is_correct = stdout.replace("\n", "") == answer.replace("\n", "")
 
         return schemas.ProgramResult(
             is_correct=is_correct,
             stderr=stderr,
             stdout=stdout,
-            user_result=user_result
+            service_message=service_message
         )
