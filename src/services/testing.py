@@ -10,6 +10,7 @@ from src import exceptions
 from src.config import Config
 from src.models import schemas
 from src.models.auth import BaseUser
+from src.models.language import ProgramLanguage
 from src.models.permission import Permission
 from src.models.state import VacancyState, UserState, TestType
 from src.services.auth.filters import permission_filter
@@ -725,3 +726,43 @@ class TestingApplicationService:
         async with db_lazy_session() as session:
             attempt = AttemptRepo(session)
             await attempt.update(attempt_id, percent=user_percent)
+
+    @permission_filter(Permission.GET_TESTING)
+    @state_filter(UserState.ACTIVE)
+    async def execute_program(self, code: str, language: ProgramLanguage, answer: str = None) -> schemas.ProgramResult:
+
+        #  Бог простит за гавнокод
+
+        headers = {"Content-Type": "application/json"}
+        params = {"base64_encoded": "true", "wait": str(True).lower()}
+
+        code_as_byte = code.encode('ascii')
+
+        data = {
+            "source_code": base64.b64encode(code_as_byte).decode('ascii'),
+            "language_id": language.value,
+        }
+
+        resp = await self._http_client.post(
+            urljoin(self._config.judge0host, "submissions"), headers=headers, params=params, json=data
+        )
+        resp_model = await resp.json()
+
+        is_correct = False
+        stderr = resp_model["stderr"]
+        stdout = resp_model["stdout"]
+
+        user_result = base64.b64decode(resp_model["stdout"]).decode('utf-8')
+
+        if stderr:
+            is_correct = False
+
+        if answer is not None and (user_result.replace("\n", "") == answer.replace("\n", "")):
+            is_correct = True
+
+        return schemas.ProgramResult(
+            is_correct=is_correct,
+            stderr=stderr,
+            stdout=stdout,
+            user_result=user_result
+        )

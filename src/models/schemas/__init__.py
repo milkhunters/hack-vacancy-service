@@ -35,4 +35,6 @@ from .questions import PracticalQuestionUpdate
 
 from .request import ApprovedRequests
 
+from .program import ProgramResult
+
 from .s3 import PreSignedPostUrl
