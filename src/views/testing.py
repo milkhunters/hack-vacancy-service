@@ -32,3 +32,7 @@ class TheoreticalQuestionResponse(BaseView):
 
 class TheoreticalQuestionsResponse(BaseView):
     content: list[schemas.TheoreticalQuestion]
+
+
+class ProgramResultResponse(BaseView):
+    content: schemas.ProgramResult

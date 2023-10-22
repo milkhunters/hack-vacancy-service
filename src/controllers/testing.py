@@ -6,9 +6,10 @@ from fastapi import status as http_status
 
 from src.dependencies.services import get_services
 from src.models import schemas
+from src.models.language import ProgramLanguage
 from src.services import ServiceFactory
 from src.views.request import ApprovedRequestsResponse
-from src.views.testing import TestingsResponse
+from src.views.testing import TestingsResponse, ProgramResultResponse
 from src.views.testing import PracticalQuestionsResponse
 from src.views.testing import TheoreticalQuestionsResponse
 from src.views.testing import AttemptTestResponse
@@ -18,6 +19,30 @@ from src.views.testing import TestingResponse
 from src.views.testing import AttemptsTestResponse
 
 router = APIRouter()
+
+
+@router.post(
+    "/practical/exec",
+    response_model=ProgramResultResponse,
+    status_code=http_status.HTTP_200_OK
+)
+async def execute_program(
+        code: str,
+        language: ProgramLanguage,
+        answer: str = None,
+        services: ServiceFactory = Depends(get_services)
+):
+    """
+    Выполнить программу
+
+    Требуемое состояние: ACTIVE
+
+    Требуемые права доступа: EXECUTE_PROGRAM
+
+    """
+    return ProgramResultResponse(
+        content=await services.testing.execute_program(code, language, answer)
+    )
 
 
 @router.get("/list", response_model=TestingsResponse, status_code=http_status.HTTP_200_OK)
