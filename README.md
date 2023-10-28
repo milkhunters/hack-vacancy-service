@@ -1,18 +1,8 @@
 ![TeamCity build status](https://teamcity.milkhunters.ru/app/rest/builds/buildType:id:MilkhuntersBackend_Build_Prod/statusIcon.svg)
 
-# Milky-Blog-Service
-Один из основных backend сервисов сайта команды MilkHunters
- 
+# Hack Vacancy Service
 
-## Установка
-
-Клонируйте проект:
-```bash
-git clone https://github.com/milkhunters/milky-blog-service.git
-```
-
-...
-
+# Сборка и запуск
 
 ## Docker
 
